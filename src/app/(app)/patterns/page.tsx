@@ -1,12 +1,10 @@
 import { Button } from "@/components/ui/button";
-
-const patterns = [
-  { merchant: "Amazon", category: "Shopping", match: "contains", status: "Active" },
-  { merchant: "Uber", category: "Transport", match: "exact", status: "Active" },
-  { merchant: "Coffee", category: "Food", match: "contains", status: "Paused" },
-];
+import { usePatterns } from "@/hooks/use-queries";
 
 export default function PatternsPage() {
+  const { data, isLoading, isError, refetch } = usePatterns();
+  const patterns = data ?? [];
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -25,43 +23,67 @@ export default function PatternsPage() {
         <Button size="sm">Add pattern</Button>
       </div>
 
-      <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
-        <div className="grid grid-cols-[1.1fr_1fr_0.6fr_0.6fr] gap-2 border-b border-[var(--color-border)] px-4 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
-          <span>Merchant</span>
-          <span>Category</span>
-          <span>Match</span>
-          <span className="text-right">Status</span>
+      {isLoading ? (
+        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-sm text-[var(--color-muted-foreground)] shadow-sm">
+          Loading patterns…
         </div>
-        <div className="divide-y divide-[var(--color-border)]">
-          {patterns.map((pattern) => (
-            <div
-              key={pattern.merchant}
-              className="grid grid-cols-[1.1fr_1fr_0.6fr_0.6fr] items-center gap-2 px-4 py-3 text-sm"
-            >
-              <span className="font-semibold text-[var(--color-foreground)]">
-                {pattern.merchant}
-              </span>
-              <span className="text-[var(--color-muted-foreground)]">
-                {pattern.category}
-              </span>
-              <span className="text-[var(--color-muted-foreground)]">
-                {pattern.match}
-              </span>
-              <span className="text-right">
-                <span
-                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                    pattern.status === "Active"
-                      ? "bg-[var(--color-brand)]/10 text-[var(--color-brand-strong)]"
-                      : "bg-[var(--color-muted)] text-[var(--color-muted-foreground)]"
-                  }`}
-                >
-                  {pattern.status}
+      ) : isError ? (
+        <div className="flex items-center justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-sm shadow-sm">
+          <div>
+            <p className="font-semibold text-[var(--color-foreground)]">
+              Unable to load patterns
+            </p>
+            <p className="text-[var(--color-muted-foreground)]">
+              Check your connection or auth; ensure backend URL is set.
+            </p>
+          </div>
+          <Button size="sm" onClick={() => refetch()}>
+            Retry
+          </Button>
+        </div>
+      ) : patterns.length === 0 ? (
+        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-muted)]/70 px-4 py-3 text-sm font-semibold text-[var(--color-muted-foreground)]">
+          No patterns yet. Add rules to auto-categorize parsed merchants.
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
+          <div className="grid grid-cols-[1.1fr_1fr_0.6fr_0.6fr] gap-2 border-b border-[var(--color-border)] px-4 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
+            <span>Merchant</span>
+            <span>Category</span>
+            <span>Match</span>
+            <span className="text-right">Status</span>
+          </div>
+          <div className="divide-y divide-[var(--color-border)]">
+            {patterns.map((pattern) => (
+              <div
+                key={pattern.id}
+                className="grid grid-cols-[1.1fr_1fr_0.6fr_0.6fr] items-center gap-2 px-4 py-3 text-sm"
+              >
+                <span className="font-semibold text-[var(--color-foreground)]">
+                  {pattern.merchantName}
                 </span>
-              </span>
-            </div>
-          ))}
+                <span className="text-[var(--color-muted-foreground)]">
+                  {pattern.categoryId}
+                </span>
+                <span className="text-[var(--color-muted-foreground)]">
+                  {pattern.matchType}
+                </span>
+                <span className="text-right">
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                      pattern.isActive
+                        ? "bg-[var(--color-brand)]/10 text-[var(--color-brand-strong)]"
+                        : "bg-[var(--color-muted)] text-[var(--color-muted-foreground)]"
+                    }`}
+                  >
+                    {pattern.isActive ? "Active" : "Paused"}
+                  </span>
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

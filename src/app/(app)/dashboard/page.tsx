@@ -1,38 +1,21 @@
-const stats = [
-  { label: "This month", value: "₹42,180", change: "-6.2% vs last month" },
-  { label: "Auto-categorized", value: "74%", change: "Patterns catching up" },
-  { label: "Accounts", value: "3", change: "Updated balances" },
-  { label: "Open reviews", value: "8", change: "Need your attention" },
-];
-
-const reviewQueue = [
-  {
-    merchant: "Starbucks",
-    amount: "-₹320",
-    note: "From notifications",
-    status: "Needs category",
-  },
-  {
-    merchant: "Swiggy",
-    amount: "-₹850",
-    note: "Pattern applied: Food",
-    status: "Verify",
-  },
-  {
-    merchant: "HDFC SMS",
-    amount: "-₹12,400",
-    note: "Large debit alert",
-    status: "Review",
-  },
-];
-
-const insights = [
-  { label: "Top category", value: "Food & Dining", tone: "calm" },
-  { label: "Fastest growing", value: "Transport", tone: "warn" },
-  { label: "Potential duplicate", value: "2 similar charges", tone: "neutral" },
-];
+import { Button } from "@/components/ui/button";
+import {
+  useAccounts,
+  useCategories,
+  useExpenseStats,
+  useExpenses,
+} from "@/hooks/use-queries";
 
 export default function DashboardPage() {
+  const { data: expenseData, isLoading: loadingExpenses, refetch: refetchExpenses } =
+    useExpenses();
+  const { data: accountsData, isLoading: loadingAccounts } = useAccounts();
+  const { data: categoriesData, isLoading: loadingCategories } = useCategories();
+
+  const expenses = expenseData ?? [];
+  const stats = useExpenseStats(expenses);
+  const reviewQueue = expenses.slice(0, 5);
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -53,22 +36,50 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat) => (
-          <div
-            key={stat.label}
-            className="rounded-2xl border border-[var(--color-border)] bg-gradient-to-br from-[var(--color-surface)] to-[var(--color-muted)]/40 p-4 shadow-sm"
-          >
-            <p className="text-sm font-semibold text-[var(--color-muted-foreground)]">
-              {stat.label}
-            </p>
-            <p className="text-2xl font-semibold text-[var(--color-foreground)]">
-              {stat.value}
-            </p>
-            <p className="text-xs font-medium text-[var(--color-muted-foreground)]">
-              {stat.change}
-            </p>
-          </div>
-        ))}
+        <div className="rounded-2xl border border-[var(--color-border)] bg-gradient-to-br from-[var(--color-surface)] to-[var(--color-muted)]/40 p-4 shadow-sm">
+          <p className="text-sm font-semibold text-[var(--color-muted-foreground)]">
+            This month
+          </p>
+          <p className="text-2xl font-semibold text-[var(--color-foreground)]">
+            ₹{stats.total.toLocaleString("en-IN")}
+          </p>
+          <p className="text-xs font-medium text-[var(--color-muted-foreground)]">
+            Total spend (all sources)
+          </p>
+        </div>
+        <div className="rounded-2xl border border-[var(--color-border)] bg-gradient-to-br from-[var(--color-surface)] to-[var(--color-muted)]/40 p-4 shadow-sm">
+          <p className="text-sm font-semibold text-[var(--color-muted-foreground)]">
+            Verified
+          </p>
+          <p className="text-2xl font-semibold text-[var(--color-foreground)]">
+            {stats.verified}
+          </p>
+          <p className="text-xs font-medium text-[var(--color-muted-foreground)]">
+            Marked as confirmed
+          </p>
+        </div>
+        <div className="rounded-2xl border border-[var(--color-border)] bg-gradient-to-br from-[var(--color-surface)] to-[var(--color-muted)]/40 p-4 shadow-sm">
+          <p className="text-sm font-semibold text-[var(--color-muted-foreground)]">
+            Auto-applied
+          </p>
+          <p className="text-2xl font-semibold text-[var(--color-foreground)]">
+            {stats.auto}
+          </p>
+          <p className="text-xs font-medium text-[var(--color-muted-foreground)]">
+            Categorized by patterns
+          </p>
+        </div>
+        <div className="rounded-2xl border border-[var(--color-border)] bg-gradient-to-br from-[var(--color-surface)] to-[var(--color-muted)]/40 p-4 shadow-sm">
+          <p className="text-sm font-semibold text-[var(--color-muted-foreground)]">
+            Accounts
+          </p>
+          <p className="text-2xl font-semibold text-[var(--color-foreground)]">
+            {accountsData?.length ?? 0}
+          </p>
+          <p className="text-xs font-medium text-[var(--color-muted-foreground)]">
+            Connected sources
+          </p>
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -82,35 +93,49 @@ export default function DashboardPage() {
                 Recent transactions
               </h2>
             </div>
-            <button className="text-sm font-semibold text-[var(--color-brand)] underline-offset-4 hover:underline">
-              Open expenses
-            </button>
+            <Button
+              className="text-sm font-semibold"
+              variant="ghost"
+              onClick={() => refetchExpenses()}
+            >
+              Refresh
+            </Button>
           </div>
-          <div className="divide-y divide-[var(--color-border)]">
-            {reviewQueue.map((item) => (
-              <div
-                key={item.merchant}
-                className="flex items-center justify-between gap-2 py-3"
-              >
-                <div className="flex flex-col">
-                  <span className="text-base font-semibold text-[var(--color-foreground)]">
-                    {item.merchant}
-                  </span>
-                  <span className="text-sm text-[var(--color-muted-foreground)]">
-                    {item.note}
-                  </span>
+          {loadingExpenses ? (
+            <div className="rounded-2xl bg-[var(--color-muted)]/60 px-3 py-3 text-sm text-[var(--color-muted-foreground)]">
+              Loading expenses…
+            </div>
+          ) : reviewQueue.length === 0 ? (
+            <div className="rounded-2xl bg-[var(--color-muted)]/60 px-3 py-3 text-sm text-[var(--color-muted-foreground)]">
+              No recent transactions yet.
+            </div>
+          ) : (
+            <div className="divide-y divide-[var(--color-border)]">
+              {reviewQueue.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between gap-2 py-3"
+                >
+                  <div className="flex flex-col">
+                    <span className="text-base font-semibold text-[var(--color-foreground)]">
+                      {item.merchantName ?? item.description ?? "Unknown"}
+                    </span>
+                    <span className="text-sm text-[var(--color-muted-foreground)]">
+                      {item.categoryName ?? "Uncategorized"}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-base font-semibold text-[var(--color-foreground)]">
+                      ₹{item.amount?.toLocaleString?.("en-IN") ?? "--"}
+                    </p>
+                    <p className="text-xs font-semibold text-[var(--color-brand)]">
+                      {item.verified ? "Verified" : item.source ?? "Review"}
+                    </p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-base font-semibold text-[var(--color-foreground)]">
-                    {item.amount}
-                  </p>
-                  <p className="text-xs font-semibold text-[var(--color-brand)]">
-                    {item.status}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
         <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm">
           <p className="text-sm font-semibold text-[var(--color-muted-foreground)]">
@@ -120,19 +145,26 @@ export default function DashboardPage() {
             Quick insights
           </h2>
           <div className="mt-4 space-y-3">
-            {insights.map((item) => (
-              <div
-                key={item.label}
-                className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-muted)]/60 px-3 py-3"
-              >
-                <p className="text-sm font-semibold text-[var(--color-muted-foreground)]">
-                  {item.label}
-                </p>
-                <p className="text-lg font-semibold text-[var(--color-foreground)]">
-                  {item.value}
-                </p>
-              </div>
-            ))}
+            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-muted)]/60 px-3 py-3">
+              <p className="text-sm font-semibold text-[var(--color-muted-foreground)]">
+                Categories
+              </p>
+              <p className="text-lg font-semibold text-[var(--color-foreground)]">
+                {loadingCategories
+                  ? "Loading…"
+                  : `${categoriesData?.length ?? 0} defined`}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-muted)]/60 px-3 py-3">
+              <p className="text-sm font-semibold text-[var(--color-muted-foreground)]">
+                Accounts
+              </p>
+              <p className="text-lg font-semibold text-[var(--color-foreground)]">
+                {loadingAccounts
+                  ? "Loading…"
+                  : `${accountsData?.length ?? 0} sources`}
+              </p>
+            </div>
           </div>
         </div>
       </div>
