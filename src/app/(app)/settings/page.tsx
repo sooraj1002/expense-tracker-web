@@ -1,6 +1,16 @@
+import { useRouter } from "next/navigation";
+
 import { Button } from "@/components/ui/button";
+import { clearTokens } from "@/lib/api-client";
 
 export default function SettingsPage() {
+  const router = useRouter();
+
+  function handleLogout() {
+    clearTokens();
+    router.replace("/login");
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -40,6 +50,14 @@ export default function SettingsPage() {
             to point at the hosted Go service. All API calls include cookies and
             bearer auth.
           </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={handleLogout}>
+              Log out
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleLogout}>
+              Reset tokens & re-auth
+            </Button>
+          </div>
         </div>
       </div>
     </div>
