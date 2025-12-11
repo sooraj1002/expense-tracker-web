@@ -12,6 +12,19 @@ import type {
   User,
 } from "./types";
 
+export type ExpenseQuery = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  categoryId?: string;
+  accountId?: string;
+  source?: "manual" | "auto";
+  verified?: boolean;
+  startDate?: string;
+  endDate?: string;
+  sort?: "date_desc" | "date_asc" | "amount_desc" | "amount_asc";
+};
+
 const ACCESS_TOKEN_KEY = "tracker_access";
 const REFRESH_TOKEN_KEY = "tracker_refresh";
 const API_BASE_URL =
@@ -160,11 +173,60 @@ export async function me(): Promise<User> {
 }
 
 // Domain helpers (stubs for now)
+function buildExpenseParams(params: ExpenseQuery = {}) {
+  const query = new URLSearchParams();
+  const page = params.page ?? 1;
+  const pageSize = params.pageSize ?? 20;
+
+  query.set("page", String(page));
+  query.set("pageSize", String(pageSize));
+  if (params.search) query.set("search", params.search);
+  if (params.categoryId) query.set("categoryId", params.categoryId);
+  if (params.accountId) query.set("accountId", params.accountId);
+  if (params.source) query.set("source", params.source);
+  if (typeof params.verified === "boolean") {
+    query.set("verified", params.verified ? "true" : "false");
+  }
+  if (params.startDate) query.set("startDate", params.startDate);
+  if (params.endDate) query.set("endDate", params.endDate);
+  if (params.sort) query.set("sort", params.sort);
+
+  return query;
+}
+
 export async function getExpenses(
-  params: URLSearchParams,
+  params: ExpenseQuery | URLSearchParams = {},
 ): Promise<PaginatedResponse<Expense>> {
-  const query = params.toString();
+  const queryParams =
+    params instanceof URLSearchParams ? params : buildExpenseParams(params);
+  const query = queryParams.toString();
   return apiFetch(`/expenses${query ? `?${query}` : ""}`, { method: "GET" });
+}
+
+export async function fetchAllExpenses(
+  params: ExpenseQuery = {},
+): Promise<Expense[]> {
+  const pageSize = params.pageSize ?? 100;
+  const base = { ...params, pageSize };
+  let page = params.page ?? 1;
+
+  const first = await getExpenses({ ...base, page });
+  let items = [...(first.items ?? [])];
+  const total = first.total ?? items.length;
+  const totalPages = Math.max(
+    1,
+    Math.ceil(total / (first.pageSize || pageSize)),
+  );
+
+  while (page < totalPages) {
+    page += 1;
+    const next = await getExpenses({ ...base, page });
+    if (next?.items?.length) {
+      items = items.concat(next.items);
+    }
+  }
+
+  return items;
 }
 
 export async function getAccounts(): Promise<Account[]> {

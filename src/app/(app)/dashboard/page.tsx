@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import {
   useAccounts,
@@ -7,12 +9,14 @@ import {
 } from "@/hooks/use-queries";
 
 export default function DashboardPage() {
-  const { data: expenseData, isLoading: loadingExpenses, refetch: refetchExpenses } =
-    useExpenses();
+  const {
+    items: expenses,
+    isLoading: loadingExpenses,
+    refetch: refetchExpenses,
+  } = useExpenses({ pageSize: 50, sort: "date_desc" });
   const { data: accountsData, isLoading: loadingAccounts } = useAccounts();
   const { data: categoriesData, isLoading: loadingCategories } = useCategories();
 
-  const expenses = expenseData ?? [];
   const stats = useExpenseStats(expenses);
   const reviewQueue = expenses.slice(0, 5);
 

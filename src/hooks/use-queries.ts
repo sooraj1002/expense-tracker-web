@@ -1,6 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import {
+  type ExpenseQuery,
   getAccounts,
   getCategories,
   getExpenses,
@@ -8,12 +9,20 @@ import {
 } from "@/lib/api-client";
 import type { Expense } from "@/lib/types";
 
-export function useExpenses(params?: URLSearchParams) {
-  return useQuery({
-    queryKey: ["expenses", params?.toString() ?? "all"],
-    queryFn: () => getExpenses(params ?? new URLSearchParams()),
-    select: (data) => data.items,
+export function useExpenses(params?: ExpenseQuery) {
+  const query = useQuery({
+    queryKey: ["expenses", params ?? {}],
+    queryFn: () => getExpenses(params),
+    placeholderData: keepPreviousData,
   });
+
+  return {
+    ...query,
+    items: query.data?.items ?? [],
+    page: query.data?.page ?? params?.page ?? 1,
+    pageSize: query.data?.pageSize ?? params?.pageSize ?? 20,
+    total: query.data?.total ?? 0,
+  };
 }
 
 export function useAccounts() {
