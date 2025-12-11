@@ -1,15 +1,27 @@
 "use client";
 
-import { fetchAllExpenses, type ExpenseQuery } from "./api-client";
+import Cookies from "js-cookie";
+
+import { type ExpenseQuery } from "./api-client";
 import type { Expense } from "./types";
 
 export async function downloadExpensesCsv(
   params?: ExpenseQuery,
   filename = "expenses.csv",
 ) {
-  const expenses = await fetchAllExpenses(params ?? {});
-  const csv = expensesToCsv(expenses);
-  triggerDownload(csv, filename);
+  const token = Cookies.get("tracker_access");
+  const res = await fetch(buildExportUrl(params), {
+    credentials: "include",
+    headers: {
+      Accept: "text/csv",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (!res.ok) {
+    throw new Error(`Export failed (${res.status})`);
+  }
+  const blob = await res.blob();
+  triggerDownloadBlob(blob, filename);
 }
 
 export function expensesToCsv(expenses: Expense[]) {
@@ -55,9 +67,8 @@ function formatDate(date?: string) {
   return parsed.toISOString().slice(0, 10);
 }
 
-function triggerDownload(content: string, filename: string) {
+function triggerDownloadBlob(blob: Blob, filename: string) {
   if (typeof window === "undefined") return;
-  const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -67,4 +78,21 @@ function triggerDownload(content: string, filename: string) {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+}
+
+function buildExportUrl(params?: ExpenseQuery) {
+  const query = new URLSearchParams();
+  if (params?.page) query.set("page", String(params.page));
+  if (params?.limit) query.set("limit", String(params.limit));
+  if (params?.period) query.set("period", params.period);
+  if (params?.startDate) query.set("startDate", params.startDate);
+  if (params?.endDate) query.set("endDate", params.endDate);
+  if (params?.categoryId) query.set("categoryId", params.categoryId);
+  if (params?.accountId) query.set("accountId", params.accountId);
+  if (params?.tags?.length) query.set("tags", params.tags.join(","));
+  if (params?.year) query.set("year", String(params.year));
+  if (params?.month) query.set("month", String(params.month));
+  if (params?.sort) query.set("sort", params.sort);
+  const qs = query.toString();
+  return `${process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api"}/expenses/export${qs ? `?${qs}` : ""}`;
 }

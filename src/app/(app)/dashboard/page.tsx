@@ -13,7 +13,7 @@ export default function DashboardPage() {
     items: expenses,
     isLoading: loadingExpenses,
     refetch: refetchExpenses,
-  } = useExpenses({ pageSize: 50, sort: "date_desc" });
+  } = useExpenses({ limit: 50, sort: "date" });
   const { data: accountsData, isLoading: loadingAccounts } = useAccounts();
   const { data: categoriesData, isLoading: loadingCategories } = useCategories();
 

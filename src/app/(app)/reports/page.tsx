@@ -31,10 +31,10 @@ export default function ReportsPage() {
   const params = useMemo(
     () => ({
       page: 1,
-      pageSize: 400,
+      limit: 400,
       startDate: dateRange.start,
       endDate: dateRange.end,
-      sort: "date_desc" as const,
+      sort: "date" as const,
     }),
     [dateRange.end, dateRange.start],
   );

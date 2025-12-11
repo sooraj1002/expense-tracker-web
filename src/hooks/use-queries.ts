@@ -20,7 +20,7 @@ export function useExpenses(params?: ExpenseQuery) {
     ...query,
     items: query.data?.items ?? [],
     page: query.data?.page ?? params?.page ?? 1,
-    pageSize: query.data?.pageSize ?? params?.pageSize ?? 20,
+    pageSize: query.data?.pageSize ?? query.data?.limit ?? params?.limit ?? 20,
     total: query.data?.total ?? 0,
   };
 }

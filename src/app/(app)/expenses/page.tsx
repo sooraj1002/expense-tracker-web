@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   useAccounts,
   useCategories,
@@ -13,35 +12,28 @@ import type { ExpenseQuery } from "@/lib/api-client";
 import { downloadExpensesCsv } from "@/lib/export";
 
 export default function ExpensesPage() {
-  const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState("all");
   const [accountId, setAccountId] = useState("all");
-  const [source, setSource] = useState<"any" | "manual" | "auto">("any");
-  const [verified, setVerified] = useState<"any" | "verified" | "unverified">(
-    "any",
-  );
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [period, setPeriod] = useState("none");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [limit, setLimit] = useState(20);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
   const filterParams = useMemo<ExpenseQuery>(
     () => ({
       page,
-      pageSize,
-      search: search.trim() || undefined,
+      limit,
       categoryId: categoryId !== "all" ? categoryId : undefined,
       accountId: accountId !== "all" ? accountId : undefined,
-      source: source === "any" ? undefined : source,
-      verified:
-        verified === "any" ? undefined : verified === "verified" ? true : false,
+      period: period !== "none" ? (period as ExpenseQuery["period"]) : undefined,
       startDate: dateFrom || undefined,
       endDate: dateTo || undefined,
-      sort: "date_desc",
+      sort: "date",
     }),
-    [accountId, categoryId, dateFrom, dateTo, page, pageSize, search, source, verified],
+    [accountId, categoryId, dateFrom, dateTo, limit, page, period],
   );
 
   const {
@@ -57,7 +49,7 @@ export default function ExpensesPage() {
   const { data: categories } = useCategories();
   const { data: accounts } = useAccounts();
 
-  const effectivePageSize = currentPageSize || pageSize;
+  const effectivePageSize = currentPageSize || limit;
   const totalPages = Math.max(
     1,
     Math.ceil(total / (effectivePageSize || 1)),
@@ -68,14 +60,14 @@ export default function ExpensesPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [accountId, categoryId, dateFrom, dateTo, search, source, verified, pageSize]);
+  }, [accountId, categoryId, dateFrom, dateTo, limit, period]);
 
   async function handleExport() {
     setExportError(null);
     setExporting(true);
     try {
       await downloadExpensesCsv(
-        { ...filterParams, page: 1, pageSize: 200 },
+        { ...filterParams, page: 1, limit: 200 },
         "tracker-expenses.csv",
       );
     } catch (err) {
@@ -88,11 +80,9 @@ export default function ExpensesPage() {
   }
 
   function resetFilters() {
-    setSearch("");
     setCategoryId("all");
     setAccountId("all");
-    setSource("any");
-    setVerified("any");
+    setPeriod("none");
     setDateFrom("");
     setDateTo("");
   }
@@ -122,14 +112,6 @@ export default function ExpensesPage() {
 
       <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-muted)]/50 p-4 shadow-sm">
         <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
-          <label className="flex flex-col gap-1 text-sm font-semibold text-[var(--color-foreground)]">
-            Search
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Merchant or description"
-            />
-          </label>
           <label className="flex flex-col gap-1 text-sm font-semibold text-[var(--color-foreground)]">
             Category
             <select
@@ -161,31 +143,17 @@ export default function ExpensesPage() {
             </select>
           </label>
           <label className="flex flex-col gap-1 text-sm font-semibold text-[var(--color-foreground)]">
-            Status
+            Period
             <select
               className="rounded-2xl border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-[var(--color-foreground)] shadow-sm outline-none focus:ring-2 focus:ring-[var(--color-brand)]/60"
-              value={verified}
-              onChange={(e) =>
-                setVerified(e.target.value as "any" | "verified" | "unverified")
-              }
+              value={period}
+              onChange={(e) => setPeriod(e.target.value)}
             >
-              <option value="any">Any</option>
-              <option value="verified">Verified</option>
-              <option value="unverified">Needs review</option>
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm font-semibold text-[var(--color-foreground)]">
-            Source
-            <select
-              className="rounded-2xl border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-[var(--color-foreground)] shadow-sm outline-none focus:ring-2 focus:ring-[var(--color-brand)]/60"
-              value={source}
-              onChange={(e) =>
-                setSource(e.target.value as "any" | "manual" | "auto")
-              }
-            >
-              <option value="any">Any</option>
-              <option value="manual">Manual</option>
-              <option value="auto">Auto</option>
+              <option value="none">All time</option>
+              <option value="today">Today</option>
+              <option value="week">This week</option>
+              <option value="month">This month</option>
+              <option value="year">This year</option>
             </select>
           </label>
           <label className="flex flex-col gap-1 text-sm font-semibold text-[var(--color-foreground)]">
@@ -210,8 +178,8 @@ export default function ExpensesPage() {
             Page size
             <select
               className="rounded-2xl border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-[var(--color-foreground)] shadow-sm outline-none focus:ring-2 focus:ring-[var(--color-brand)]/60"
-              value={pageSize}
-              onChange={(e) => setPageSize(Number(e.target.value))}
+              value={limit}
+              onChange={(e) => setLimit(Number(e.target.value))}
             >
               {[10, 20, 50, 100].map((size) => (
                 <option key={size} value={size}>

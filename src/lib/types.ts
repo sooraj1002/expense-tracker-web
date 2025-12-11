@@ -50,6 +50,7 @@ export type MerchantPattern = {
 export type PaginatedResponse<T> = {
   items: T[];
   page: number;
-  pageSize: number;
+  pageSize?: number;
+  limit?: number;
   total: number;
 };

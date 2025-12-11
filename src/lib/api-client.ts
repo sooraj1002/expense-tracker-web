@@ -14,15 +14,16 @@ import type {
 
 export type ExpenseQuery = {
   page?: number;
-  pageSize?: number;
-  search?: string;
+  limit?: number;
   categoryId?: string;
   accountId?: string;
-  source?: "manual" | "auto";
-  verified?: boolean;
+  period?: "today" | "week" | "month" | "year";
   startDate?: string;
   endDate?: string;
-  sort?: "date_desc" | "date_asc" | "amount_desc" | "amount_asc";
+  tags?: string[];
+  sort?: "date" | "updated";
+  year?: number;
+  month?: number;
 };
 
 const ACCESS_TOKEN_KEY = "tracker_access";
@@ -176,19 +177,18 @@ export async function me(): Promise<User> {
 function buildExpenseParams(params: ExpenseQuery = {}) {
   const query = new URLSearchParams();
   const page = params.page ?? 1;
-  const pageSize = params.pageSize ?? 20;
+  const limit = params.limit ?? 20;
 
   query.set("page", String(page));
-  query.set("pageSize", String(pageSize));
-  if (params.search) query.set("search", params.search);
+  query.set("limit", String(limit));
+  if (params.period) query.set("period", params.period);
+  if (params.year) query.set("year", String(params.year));
+  if (params.month) query.set("month", String(params.month));
   if (params.categoryId) query.set("categoryId", params.categoryId);
   if (params.accountId) query.set("accountId", params.accountId);
-  if (params.source) query.set("source", params.source);
-  if (typeof params.verified === "boolean") {
-    query.set("verified", params.verified ? "true" : "false");
-  }
   if (params.startDate) query.set("startDate", params.startDate);
   if (params.endDate) query.set("endDate", params.endDate);
+  if (params.tags?.length) query.set("tags", params.tags.join(","));
   if (params.sort) query.set("sort", params.sort);
 
   return query;
@@ -206,8 +206,8 @@ export async function getExpenses(
 export async function fetchAllExpenses(
   params: ExpenseQuery = {},
 ): Promise<Expense[]> {
-  const pageSize = params.pageSize ?? 100;
-  const base = { ...params, pageSize };
+  const limit = params.limit ?? 100;
+  const base = { ...params, limit };
   let page = params.page ?? 1;
 
   const first = await getExpenses({ ...base, page });
@@ -215,7 +215,7 @@ export async function fetchAllExpenses(
   const total = first.total ?? items.length;
   const totalPages = Math.max(
     1,
-    Math.ceil(total / (first.pageSize || pageSize)),
+    Math.ceil(total / (first.pageSize || first.limit || limit)),
   );
 
   while (page < totalPages) {
