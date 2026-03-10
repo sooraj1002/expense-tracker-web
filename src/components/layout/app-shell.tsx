@@ -22,7 +22,6 @@ const navItems = [
   { label: "Expenses", href: "/expenses", icon: Banknote },
   { label: "Accounts", href: "/accounts", icon: Wallet },
   { label: "Categories", href: "/categories", icon: Layers },
-  { label: "Patterns", href: "/patterns", icon: Sparkles },
   { label: "Reports", href: "/reports", icon: ChartPie },
   { label: "Settings", href: "/settings", icon: Settings2 },
 ];
