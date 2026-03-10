@@ -11,12 +11,12 @@ npm run dev
 ```
 
 Environment:
-- `NEXT_PUBLIC_API_BASE_URL` – Backend base URL (e.g., `https://api.example.com/api`). Cookies + bearer auth are sent on every request.
+- `NEXT_PUBLIC_API_BASE_URL` – Backend base URL. Default fallback in this repo is `http://shadywrldserver:8082/api`. Cookies + bearer auth are sent on every request.
 
 ## Features (initial scaffold)
 - Auth pages (login/signup) with cookie token handling + refresh attempts.
-- App shell with nav to dashboard, expenses, accounts, categories, patterns, reports, settings.
-- Placeholder dashboards and tables for expenses, accounts, patterns, and reporting/export flows.
+- App shell with nav to dashboard, expenses, accounts, categories, reports, settings.
+- Operational expense/account/category management plus reporting/export flows.
 - React Query provider wired for client-side caching and future optimistic updates.
 
 ## Scripts

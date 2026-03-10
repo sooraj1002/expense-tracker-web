@@ -35,7 +35,7 @@ export type ExpenseQuery = {
 const ACCESS_TOKEN_KEY = "tracker_access";
 const REFRESH_TOKEN_KEY = "tracker_refresh";
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api";
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://shadywrldserver:8082/api";
 
 export class ApiError extends Error {
   status?: number;

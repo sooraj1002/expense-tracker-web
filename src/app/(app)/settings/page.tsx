@@ -49,8 +49,9 @@ export default function SettingsPage() {
           </p>
           <p className="text-sm text-[var(--color-foreground)]">
             Configure <code className="rounded bg-[var(--color-muted)] px-1">NEXT_PUBLIC_API_BASE_URL</code>{" "}
-            to point at the hosted Go service. All API calls include cookies and
-            bearer auth.
+            to point at the Go service. This web app now defaults to{" "}
+            <code className="rounded bg-[var(--color-muted)] px-1">http://shadywrldserver:8082/api</code>.
+            All API calls include cookies and bearer auth.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={handleLogout}>

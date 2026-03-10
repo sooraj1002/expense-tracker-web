@@ -94,5 +94,5 @@ function buildExportUrl(params?: ExpenseQuery) {
   if (params?.month) query.set("month", String(params.month));
   if (params?.sort) query.set("sort", params.sort);
   const qs = query.toString();
-  return `${process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api"}/expenses/export${qs ? `?${qs}` : ""}`;
+  return `${process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://shadywrldserver:8082/api"}/expenses/export${qs ? `?${qs}` : ""}`;
 }
