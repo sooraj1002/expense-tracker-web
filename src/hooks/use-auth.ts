@@ -15,5 +15,8 @@ export function useAuth(enabled = true) {
     staleTime: 5 * 60 * 1000,
   });
 
-  return query;
+  return {
+    ...query,
+    hasToken,
+  };
 }

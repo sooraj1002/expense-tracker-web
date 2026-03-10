@@ -9,14 +9,29 @@ import { clearTokens } from "@/lib/api-client";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { data, isLoading, isError, error, refetch } = useAuth();
+  const { data, hasToken, isLoading, isError, error, refetch } = useAuth();
 
   useEffect(() => {
+    if (!hasToken) {
+      router.replace("/login");
+      return;
+    }
+
     if (!isLoading && isError) {
       clearTokens();
       router.replace("/login");
     }
-  }, [isError, isLoading, router]);
+  }, [hasToken, isError, isLoading, router]);
+
+  if (!hasToken) {
+    return (
+      <div className="grid min-h-[40vh] place-items-center">
+        <div className="rounded-2xl bg-[var(--color-muted)] px-6 py-4 text-sm font-semibold text-[var(--color-muted-foreground)]">
+          Redirecting to login…
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -50,7 +65,13 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   if (!data) {
-    return null;
+    return (
+      <div className="grid min-h-[40vh] place-items-center">
+        <div className="rounded-2xl bg-[var(--color-muted)] px-6 py-4 text-sm font-semibold text-[var(--color-muted-foreground)]">
+          Loading session…
+        </div>
+      </div>
+    );
   }
 
   return <>{children}</>;

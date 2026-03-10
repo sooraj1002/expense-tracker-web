@@ -27,8 +27,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${sans.variable} ${mono.variable} antialiased`}>
+    <html lang="en" suppressHydrationWarning>
+      <body
+        suppressHydrationWarning
+        className={`${sans.variable} ${mono.variable} antialiased`}
+      >
         <Providers>{children}</Providers>
       </body>
     </html>
