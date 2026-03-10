@@ -1,3 +1,14 @@
+export type ApiErrorPayload = {
+  code: string;
+  message: string;
+};
+
+export type ApiEnvelope<T> = {
+  success: boolean;
+  data: T;
+  error?: ApiErrorPayload | null;
+};
+
 export type User = {
   id: string;
   email: string;
@@ -7,6 +18,7 @@ export type User = {
 export type AuthResponse = {
   token: string;
   refreshToken?: string;
+  expiresAt?: string;
   user: User;
 };
 
@@ -25,32 +37,67 @@ export type Account = {
   totalSpent?: number;
 };
 
+export type CategoryBasic = {
+  categoryId: string;
+  categoryName: string;
+  color: string;
+  isDefault: boolean;
+};
+
 export type Expense = {
   id: string;
+  userId?: string;
   amount: number;
+  category?: CategoryBasic;
   description?: string;
   categoryId?: string;
   categoryName?: string;
-  accountId?: string;
+  accountId: string;
   accountName?: string;
+  date: string;
+  tags: string[];
+  merchantId?: string;
   source?: "manual" | "auto";
   merchantName?: string;
   verified?: boolean;
+  rawData?: string;
   createdAt?: string;
+  updatedAt?: string;
 };
 
-export type MerchantPattern = {
-  id: string;
-  merchantName: string;
+export type CreateCategoryInput = {
+  name: string;
+  color: string;
+};
+
+export type UpdateCategoryInput = Partial<CreateCategoryInput>;
+
+export type CreateAccountInput = {
+  name: string;
+  initialBalance: number;
+};
+
+export type UpdateAccountInput = Partial<CreateAccountInput>;
+
+export type CreateExpenseInput = {
+  amount: number;
   categoryId: string;
-  matchType: "exact" | "contains";
-  isActive?: boolean;
+  accountId: string;
+  date: string;
+  description?: string;
+  tags?: string[];
 };
 
-export type PaginatedResponse<T> = {
-  items: T[];
+export type UpdateExpenseInput = Partial<CreateExpenseInput> & {
+  verified?: boolean;
+};
+
+export type PaginatedResponse<TItem> = {
+  items: TItem[];
   page: number;
-  pageSize?: number;
-  limit?: number;
+  pageSize: number;
+  limit: number;
   total: number;
+  totalPages: number;
+  totalAmount: number;
 };

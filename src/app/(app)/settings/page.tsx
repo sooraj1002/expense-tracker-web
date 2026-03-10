@@ -28,7 +28,7 @@ export default function SettingsPage() {
             companion.
           </p>
         </div>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" onClick={handleLogout}>
           Clear session
         </Button>
       </div>

@@ -37,7 +37,7 @@ export function expensesToCsv(expenses: Expense[]) {
   ];
 
   const rows = expenses.map((expense) => [
-    formatDate(expense.createdAt),
+    formatDate(expense.date || expense.createdAt),
     expense.merchantName ?? expense.description ?? "",
     expense.categoryName ?? "Uncategorized",
     expense.accountName ?? "",

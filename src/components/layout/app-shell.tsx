@@ -1,14 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Banknote,
   ChartPie,
   Layers,
   LayoutDashboard,
   Settings2,
-  Sparkles,
   Wallet,
 } from "lucide-react";
 
@@ -28,6 +27,7 @@ const navItems = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
 
   return (
     <AuthGuard>
@@ -36,10 +36,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <header className="mb-6 flex items-center justify-between gap-4 rounded-3xl bg-[var(--color-surface)]/90 p-4 shadow-sm ring-1 ring-[var(--color-border)]/70 backdrop-blur">
             <Logo />
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="hidden sm:inline-flex"
+                onClick={() => router.push("/expenses?new=1")}
+              >
                 Quick add
               </Button>
-              <Button size="sm">New expense</Button>
+              <Button size="sm" onClick={() => router.push("/expenses?new=1")}>
+                New expense
+              </Button>
             </div>
           </header>
           <div className="grid gap-6 lg:grid-cols-[250px_1fr]">

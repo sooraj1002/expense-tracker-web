@@ -4,11 +4,17 @@ import Cookies from "js-cookie";
 
 import type {
   Account,
+  ApiEnvelope,
   AuthResponse,
   Category,
+  CreateAccountInput,
+  CreateCategoryInput,
+  CreateExpenseInput,
   Expense,
-  MerchantPattern,
   PaginatedResponse,
+  UpdateAccountInput,
+  UpdateCategoryInput,
+  UpdateExpenseInput,
   User,
 } from "./types";
 
@@ -40,13 +46,14 @@ export class ApiError extends Error {
 }
 
 async function refreshToken(): Promise<boolean> {
-  const refreshToken = Cookies.get(REFRESH_TOKEN_KEY);
-  if (!refreshToken) return false;
+  const tokenForRefresh =
+    Cookies.get(REFRESH_TOKEN_KEY) ?? Cookies.get(ACCESS_TOKEN_KEY);
+  if (!tokenForRefresh) return false;
 
   const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refreshToken }),
+    body: JSON.stringify({ token: tokenForRefresh }),
     credentials: "include",
   });
 
@@ -55,7 +62,10 @@ async function refreshToken(): Promise<boolean> {
     return false;
   }
 
-  const data = (await res.json().catch(() => null)) as AuthResponse | null;
+  const response = (await res.json().catch(() => null)) as
+    | ApiEnvelope<{ token: string; refreshToken?: string }>
+    | null;
+  const data = response?.success ? response.data : null;
   if (!data?.token) return false;
   setTokens(data.token, data.refreshToken);
   return true;
@@ -81,6 +91,7 @@ async function handleResponse(res: Response) {
 function safeParseError(body: string): string | null {
   try {
     const data = JSON.parse(body);
+    if (typeof data?.error?.message === "string") return data.error.message;
     if (typeof data?.message === "string") return data.message;
   } catch {
     return null;
@@ -129,8 +140,9 @@ export function setTokens(token?: string, refreshToken?: string) {
   if (token) {
     Cookies.set(ACCESS_TOKEN_KEY, token);
   }
-  if (refreshToken) {
-    Cookies.set(REFRESH_TOKEN_KEY, refreshToken);
+  const refreshValue = refreshToken ?? token;
+  if (refreshValue) {
+    Cookies.set(REFRESH_TOKEN_KEY, refreshValue);
   }
 }
 
@@ -144,12 +156,13 @@ export async function login(payload: {
   email: string;
   password: string;
 }): Promise<AuthResponse> {
-  const data = await apiFetch<AuthResponse>("/auth/login", {
+  const response = await apiFetch<ApiEnvelope<AuthResponse>>("/auth/login", {
     method: "POST",
     body: JSON.stringify(payload),
     auth: false,
     skipRefresh: true,
   });
+  const data = unwrapData(response);
   setTokens(data.token, data.refreshToken);
   return data;
 }
@@ -159,18 +172,20 @@ export async function register(payload: {
   password: string;
   name?: string;
 }): Promise<AuthResponse> {
-  const data = await apiFetch<AuthResponse>("/auth/register", {
+  const response = await apiFetch<ApiEnvelope<AuthResponse>>("/auth/register", {
     method: "POST",
     body: JSON.stringify(payload),
     auth: false,
     skipRefresh: true,
   });
+  const data = unwrapData(response);
   setTokens(data.token, data.refreshToken);
   return data;
 }
 
 export async function me(): Promise<User> {
-  return apiFetch<User>("/auth/me", { method: "GET" });
+  const response = await apiFetch<ApiEnvelope<User>>("/auth/me", { method: "GET" });
+  return unwrapData(response);
 }
 
 // Domain helpers (stubs for now)
@@ -200,7 +215,38 @@ export async function getExpenses(
   const queryParams =
     params instanceof URLSearchParams ? params : buildExpenseParams(params);
   const query = queryParams.toString();
-  return apiFetch(`/expenses${query ? `?${query}` : ""}`, { method: "GET" });
+  const response = await apiFetch<{
+    success: boolean;
+    data: Expense[];
+    pagination?: {
+      page: number;
+      limit: number;
+      totalCount: number;
+      totalPages: number;
+      totalAmount: number;
+    };
+    error?: { message?: string } | null;
+  }>(`/expenses${query ? `?${query}` : ""}`, { method: "GET" });
+
+  if (!response.success) {
+    throw new ApiError(
+      response.error?.message ?? "Unable to load expenses.",
+    );
+  }
+
+  const items = (response.data ?? []).map(normalizeExpense);
+  const pagination = response.pagination;
+  return {
+    items,
+    page: pagination?.page ?? 1,
+    pageSize: pagination?.limit ?? 20,
+    limit: pagination?.limit ?? 20,
+    total: pagination?.totalCount ?? items.length,
+    totalPages: pagination?.totalPages ?? 1,
+    totalAmount:
+      pagination?.totalAmount ??
+      items.reduce((sum, expense) => sum + Math.abs(expense.amount ?? 0), 0),
+  };
 }
 
 export async function fetchAllExpenses(
@@ -230,13 +276,140 @@ export async function fetchAllExpenses(
 }
 
 export async function getAccounts(): Promise<Account[]> {
-  return apiFetch("/accounts", { method: "GET" });
+  const response = await apiFetch<ApiEnvelope<Account[]>>("/accounts", {
+    method: "GET",
+  });
+  return unwrapData(response);
 }
 
 export async function getCategories(): Promise<Category[]> {
-  return apiFetch("/categories", { method: "GET" });
+  const response = await apiFetch<ApiEnvelope<Category[]>>("/categories", {
+    method: "GET",
+  });
+  return unwrapData(response);
 }
 
-export async function getMerchantPatterns(): Promise<MerchantPattern[]> {
-  return apiFetch("/merchant-patterns", { method: "GET" });
+export async function getExpenseTags(): Promise<string[]> {
+  const response = await apiFetch<ApiEnvelope<{ tags: string[]; count: number }>>(
+    "/expenses/tags",
+    { method: "GET" },
+  );
+  return unwrapData(response).tags ?? [];
+}
+
+export async function createCategory(
+  payload: CreateCategoryInput,
+): Promise<Category> {
+  const response = await apiFetch<ApiEnvelope<Category>>("/categories", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return unwrapData(response);
+}
+
+export async function updateCategory(
+  id: string,
+  payload: UpdateCategoryInput,
+): Promise<Category> {
+  const response = await apiFetch<ApiEnvelope<Category>>(`/categories/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return unwrapData(response);
+}
+
+export async function deleteCategory(id: string): Promise<void> {
+  const response = await apiFetch<ApiEnvelope<null>>(`/categories/${id}`, {
+    method: "DELETE",
+  });
+  unwrapData(response);
+}
+
+export async function createAccount(payload: CreateAccountInput): Promise<Account> {
+  const response = await apiFetch<ApiEnvelope<Account>>("/accounts", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return unwrapData(response);
+}
+
+export async function updateAccount(
+  id: string,
+  payload: UpdateAccountInput,
+): Promise<Account> {
+  const response = await apiFetch<ApiEnvelope<Account>>(`/accounts/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return unwrapData(response);
+}
+
+export async function deleteAccount(id: string): Promise<void> {
+  const response = await apiFetch<ApiEnvelope<null>>(`/accounts/${id}`, {
+    method: "DELETE",
+  });
+  unwrapData(response);
+}
+
+export async function createExpense(
+  payload: CreateExpenseInput,
+): Promise<Expense> {
+  const response = await apiFetch<ApiEnvelope<Expense>>("/expenses", {
+    method: "POST",
+    body: JSON.stringify({
+      ...payload,
+      tags: normalizeTags(payload.tags ?? []),
+    }),
+  });
+  return normalizeExpense(unwrapData(response));
+}
+
+export async function updateExpense(
+  id: string,
+  payload: UpdateExpenseInput,
+): Promise<Expense> {
+  const response = await apiFetch<ApiEnvelope<Expense>>(`/expenses/${id}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      ...payload,
+      tags: payload.tags ? normalizeTags(payload.tags) : undefined,
+    }),
+  });
+  return normalizeExpense(unwrapData(response));
+}
+
+export async function deleteExpense(id: string): Promise<void> {
+  const response = await apiFetch<ApiEnvelope<null>>(`/expenses/${id}`, {
+    method: "DELETE",
+  });
+  unwrapData(response);
+}
+
+function unwrapData<T>(response: ApiEnvelope<T>) {
+  if (!response.success) {
+    throw new ApiError(response.error?.message ?? "Request failed.");
+  }
+  return response.data;
+}
+
+function normalizeExpense(expense: Expense): Expense {
+  const tags = normalizeTags(expense.tags ?? []);
+  return {
+    ...expense,
+    categoryId: expense.category?.categoryId ?? expense.categoryId,
+    categoryName: expense.category?.categoryName ?? expense.categoryName,
+    tags: tags.length > 0 ? tags : ["misc"],
+  };
+}
+
+function normalizeTags(tags: string[]) {
+  const seen = new Set<string>();
+  const normalized: string[] = [];
+  tags.forEach((tag) => {
+    const trimmed = tag.trim().toLowerCase();
+    if (!trimmed || seen.has(trimmed)) return;
+    seen.add(trimmed);
+    normalized.push(trimmed);
+  });
+  return normalized;
 }

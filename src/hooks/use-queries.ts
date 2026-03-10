@@ -1,13 +1,35 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 import {
+  createAccount,
+  createCategory,
+  createExpense,
+  deleteAccount,
+  deleteCategory,
+  deleteExpense,
   type ExpenseQuery,
   getAccounts,
   getCategories,
+  getExpenseTags,
   getExpenses,
-  getMerchantPatterns,
+  updateAccount,
+  updateCategory,
+  updateExpense,
 } from "@/lib/api-client";
-import type { Expense } from "@/lib/types";
+import type {
+  CreateAccountInput,
+  CreateCategoryInput,
+  CreateExpenseInput,
+  Expense,
+  UpdateAccountInput,
+  UpdateCategoryInput,
+  UpdateExpenseInput,
+} from "@/lib/types";
 
 export function useExpenses(params?: ExpenseQuery) {
   const query = useQuery({
@@ -39,10 +61,10 @@ export function useCategories() {
   });
 }
 
-export function usePatterns() {
+export function useExpenseTags() {
   return useQuery({
-    queryKey: ["patterns"],
-    queryFn: getMerchantPatterns,
+    queryKey: ["expense-tags"],
+    queryFn: getExpenseTags,
   });
 }
 
@@ -54,4 +76,134 @@ export function useExpenseStats(expenses?: Expense[]) {
   const verified = expenses.filter((e) => e.verified).length;
   const auto = expenses.filter((e) => e.source === "auto").length;
   return { total, verified, auto };
+}
+
+export function useCreateCategory() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: CreateCategoryInput) => createCategory(payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["categories"] });
+    },
+  });
+}
+
+export function useUpdateCategory() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: string;
+      payload: UpdateCategoryInput;
+    }) => updateCategory(id, payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["categories"] });
+      await queryClient.invalidateQueries({ queryKey: ["expenses"] });
+    },
+  });
+}
+
+export function useDeleteCategory() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => deleteCategory(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["categories"] });
+      await queryClient.invalidateQueries({ queryKey: ["expenses"] });
+    },
+  });
+}
+
+export function useCreateAccount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: CreateAccountInput) => createAccount(payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["accounts"] });
+    },
+  });
+}
+
+export function useUpdateAccount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: string;
+      payload: UpdateAccountInput;
+    }) => updateAccount(id, payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      await queryClient.invalidateQueries({ queryKey: ["expenses"] });
+    },
+  });
+}
+
+export function useDeleteAccount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => deleteAccount(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      await queryClient.invalidateQueries({ queryKey: ["expenses"] });
+    },
+  });
+}
+
+export function useCreateExpense() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: CreateExpenseInput) => createExpense(payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      await queryClient.invalidateQueries({ queryKey: ["expense-tags"] });
+      await queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      await queryClient.invalidateQueries({ queryKey: ["reports"] });
+    },
+  });
+}
+
+export function useUpdateExpense() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: string;
+      payload: UpdateExpenseInput;
+    }) => updateExpense(id, payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      await queryClient.invalidateQueries({ queryKey: ["expense-tags"] });
+      await queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      await queryClient.invalidateQueries({ queryKey: ["reports"] });
+    },
+  });
+}
+
+export function useDeleteExpense() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => deleteExpense(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      await queryClient.invalidateQueries({ queryKey: ["expense-tags"] });
+      await queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      await queryClient.invalidateQueries({ queryKey: ["reports"] });
+    },
+  });
 }
