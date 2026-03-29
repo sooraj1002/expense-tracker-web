@@ -81,6 +81,7 @@ function triggerDownloadBlob(blob: Blob, filename: string) {
 }
 
 function buildExportUrl(params?: ExpenseQuery) {
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "/api";
   const query = new URLSearchParams();
   if (params?.page) query.set("page", String(params.page));
   if (params?.limit) query.set("limit", String(params.limit));
@@ -94,5 +95,5 @@ function buildExportUrl(params?: ExpenseQuery) {
   if (params?.month) query.set("month", String(params.month));
   if (params?.sort) query.set("sort", params.sort);
   const qs = query.toString();
-  return `${process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://shadywrldserver:8082/api"}/expenses/export${qs ? `?${qs}` : ""}`;
+  return `${apiBaseUrl}/expenses/export${qs ? `?${qs}` : ""}`;
 }

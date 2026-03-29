@@ -11,7 +11,8 @@ npm run dev
 ```
 
 Environment:
-- `NEXT_PUBLIC_API_BASE_URL` – Backend base URL. Default fallback in this repo is `http://shadywrldserver:8082/api`. Cookies + bearer auth are sent on every request.
+- `NEXT_PUBLIC_API_BASE_URL` – Browser-facing API base URL. Default is `/api`, so the web app can sit behind a reverse proxy or Next rewrite and keep the API same-origin.
+- `INTERNAL_API_ORIGIN` – Server-side backend origin used by the Next.js rewrite layer. Local dev can use `http://127.0.0.1:8082`; the Docker deployment in this repo uses `http://backend:8080`.
 
 ## Features (initial scaffold)
 - Auth pages (login/signup) with cookie token handling + refresh attempts.

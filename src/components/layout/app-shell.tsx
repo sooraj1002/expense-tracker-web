@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -15,6 +16,9 @@ import { AuthGuard } from "@/components/auth/auth-guard";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { VoiceButton } from "@/components/voice/voice-button";
+import { VoiceMode } from "@/components/voice/voice-mode";
+import { useVoice } from "@/hooks/use-voice";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -28,6 +32,8 @@ const navItems = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [voiceOpen, setVoiceOpen] = useState(false);
+  const voice = useVoice();
 
   return (
     <AuthGuard>
@@ -47,6 +53,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Button size="sm" onClick={() => router.push("/expenses?new=1")}>
                 New expense
               </Button>
+              <VoiceButton
+                status={voice.status}
+                onClick={() => {
+                  if (voice.status !== "idle" && voice.status !== "error") {
+                    voice.stopVoice();
+                    setVoiceOpen(false);
+                  } else {
+                    setVoiceOpen(true);
+                    voice.startVoice();
+                  }
+                }}
+              />
             </div>
           </header>
           <div className="grid gap-6 lg:grid-cols-[250px_1fr]">
@@ -106,6 +124,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </div>
+      {voiceOpen && (
+        <VoiceMode
+          voice={voice}
+          onClose={() => {
+            setVoiceOpen(false);
+            voice.stopVoice();
+          }}
+        />
+      )}
     </AuthGuard>
   );
 }
